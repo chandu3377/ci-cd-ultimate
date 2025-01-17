@@ -2,11 +2,20 @@ pipeline {
   agent {
     kubernetes {
       label 'podman-agent'
-      defaultContainer 'jnlp'
+      defaultContainer 'jnlp' // Default container for communication (jnlp)
       containerTemplate {
-        name 'podman'
-        image 'chandu3377/maven-chandu-docker-agent:v1'
-        args '' // Remove the --user root argument for simplicity
+        name 'jnlp' // JNLP container for Jenkins communication
+        image 'jenkins/inbound-agent:latest' // JNLP image for Jenkins agent
+        args ''
+      }
+      containerTemplate {
+        name 'podman' // Podman container for Docker/Podman commands
+        image 'chandu3377/maven-chandu-docker-agent:v1' // Podman image (make sure Podman is installed)
+        args '' // Remove --user root for simplicity
+        envVars [
+          // Add any necessary environment variables for Podman (if required)
+          [name: 'PODMAN_IMAGE', value: 'chandu3377/maven-chandu-docker-agent']
+        ]
       }
     }
   }
@@ -43,14 +52,16 @@ pipeline {
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
-        script {
-          // Use Podman to build the image
-          sh 'cd java-maven-argocd-kube/spring-boot-app && podman build -t ${PODMAN_IMAGE} .'
+        container('podman') { // Explicitly use the 'podman' container here
+          script {
+            // Use Podman to build the image
+            sh 'cd java-maven-argocd-kube/spring-boot-app && podman build -t ${PODMAN_IMAGE} .'
 
-          // Push the image to Docker registry using Podman (if required)
-          withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-            sh "podman login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io"
-            sh "podman push ${PODMAN_IMAGE}"
+            // Push the image to Docker registry using Podman (if required)
+            withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+              sh "podman login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io"
+              sh "podman push ${PODMAN_IMAGE}"
+            }
           }
         }
       }
