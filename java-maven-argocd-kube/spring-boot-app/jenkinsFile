@@ -45,48 +45,16 @@ pipeline {
         }
       }
     }
-    stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "iam-veeramalla"
-        }
-        steps {
+    steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 sh '''
-                    # Configure Git user
-                git config user.email "abhishek.xyz@gmail.com"
-                git config user.name "Abhishek Veeramalla"
-
-                # Checkout the main branch (ensure we're on the correct branch)
-                git checkout main
-
-                # Pull the latest changes from the remote repository to ensure we're up-to-date
-                git pull origin main
-
-                # Debugging: List files to check if deployment.yml exists
-                echo "Listing files in the directory:"
-                ls -R java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/
-
-                # Check if the deployment.yml file exists in the directory
-                if [ -f java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml ]; then
-                    echo "deployment.yml found, proceeding with update."
-                    # Update the deployment.yml file with the new image tag
+                    git config user.email "chanduprakash3377@gmail.com"
+                    git config user.name "chandu"
                     BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-
-                    # Print the updated deployment.yml file to verify the change
-                    cat java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-
-                    # Stage and commit the changes
-                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-
-                    # Push the changes to the GitHub repository
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                else
-                    echo "Error: deployment.yml not found. Aborting pipeline."
-                    exit 1
-                fi
                 '''
             }
         }
