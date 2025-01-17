@@ -56,11 +56,22 @@ pipeline {
                     git config user.email "chandu.xyz@gmail.com"
                     git config user.name "bunny"
                     BUILD_NUMBER=${BUILD_NUMBER}
-                    echo "target/" >> .gitignore
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
-                    git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    # Check if .gitignore exists; if not, create one
+                    if [ ! -f .gitignore ]; then
+                        echo "Creating .gitignore file"
+                        echo "java-maven-argocd-kube/spring-boot-app/target/" > .gitignore
+                    else
+                        echo "Updating .gitignore file"
+                        # Append the target directory to .gitignore if it doesn't already exist
+                        if ! grep -Fxq "java-maven-argocd-kube/spring-boot-app/target/" .gitignore; then
+                            echo "java-maven-argocd-kube/spring-boot-app/target/" >> .gitignore
+                        fi
+                    fi
+                    # Add .gitignore file to staging
                     git add .gitignore
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                    git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                 '''
             }
