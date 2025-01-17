@@ -56,7 +56,8 @@ pipeline {
                     git config user.email "chandu.xyz@gmail.com"
                     git config user.name "bunny"
                     BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    IMAGE_TAG="chandu3377/ultimate-cicd:${BUILD_NUMBER}"
+                    sed -i "s/replaceImageTag/${IMAGE_TAG}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     # Check if .gitignore exists; if not, create one
                     if [ ! -f .gitignore ]; then
                         echo "Creating .gitignore file"
