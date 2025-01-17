@@ -60,8 +60,10 @@ pipeline {
                     ls -l java-maven-argocd-kube/spring-boot-app-manifests/
                     git config user.email "chandu.xyz@gmail.com"
                     git config user.name "bunny"
+                    git clean -fd
                     BUILD_NUMBER=${BUILD_NUMBER}
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    cat java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
