@@ -55,14 +55,17 @@ pipeline {
                 sh '''
                     git config user.email "chanduprakash3377@gmail.com"
                     git config user.name "chandu"
+                    git checkout main
+                    echo '/java-maven-argocd-kube/spring-boot-app/target/' >> .gitignore
+                    git clean -fd
                     BUILD_NUMBER=${BUILD_NUMBER}
                     # Clean untracked files (e.g., build artifacts) before committing
-                    git clean -fd
                     # Update deployment.yml with the new image tag
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     # Debugging: Print the contents of the file to verify if the change took place
                     cat java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
-                    git add -f java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git add .gitignore 
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                 '''
