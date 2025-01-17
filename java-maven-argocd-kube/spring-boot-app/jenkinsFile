@@ -53,6 +53,11 @@ pipeline {
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 sh '''
+                    # Check the current working directory and file structure
+                    echo "Current directory:"
+                    pwd
+                    echo "Listing files in the directory:"
+                    ls -l java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/
                     git config user.email "chandu.xyz@gmail.com"
                     git config user.name "bunny"
                     BUILD_NUMBER=${BUILD_NUMBER}
