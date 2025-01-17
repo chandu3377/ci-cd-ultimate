@@ -56,6 +56,9 @@ pipeline {
                     git config user.email "chanduprakash3377@gmail.com"
                     git config user.name "chandu3377"
                     BUILD_NUMBER=${BUILD_NUMBER}
+                    # Clean untracked files (e.g., build artifacts) before committing
+                    git clean -fd
+                    # Update deployment.yml with the new image tag
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
