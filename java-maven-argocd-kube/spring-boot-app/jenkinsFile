@@ -6,22 +6,22 @@ pipeline {
       containerTemplate {
         name 'podman'
         image 'chandu3377/maven-chandu-docker-agent:v1'
-        args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket (can be skipped if using only Podman)
+        args '' // Remove the --user root argument for simplicity
       }
     }
   }
   stages {
     stage('Checkout') {
       steps {
+        echo 'Checkout stage'
         sh 'echo passed'
-        // git branch: 'main', url: 'https://github.com/chandu3377/ci-cd-ultimate.git'
       }
     }
 
     stage('Build and Test') {
       steps {
+        echo 'Build and Test stage'
         sh 'ls -ltr'
-        // Build the project and create a JAR file
         sh 'cd java-maven-argocd-kube/spring-boot-app && mvn clean package'
       }
     }
@@ -48,7 +48,6 @@ pipeline {
           sh 'cd java-maven-argocd-kube/spring-boot-app && podman build -t ${PODMAN_IMAGE} .'
 
           // Push the image to Docker registry using Podman (if required)
-          // If you're using a private registry like Docker Hub, ensure to login to the registry
           withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
             sh "podman login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io"
             sh "podman push ${PODMAN_IMAGE}"
