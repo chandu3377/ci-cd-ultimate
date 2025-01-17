@@ -56,8 +56,10 @@ pipeline {
                     git config user.email "chandu.xyz@gmail.com"
                     git config user.name "bunny"
                     BUILD_NUMBER=${BUILD_NUMBER}
+                    echo "target/" >> .gitignore
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
                     git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git add .gitignore
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                 '''
