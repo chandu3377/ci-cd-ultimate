@@ -1,43 +1,27 @@
 pipeline {
   agent {
-    kubernetes {
-      label 'podman-agent'
-      defaultContainer 'jnlp' // Default container for communication (jnlp)
-      containerTemplate {
-        name 'jnlp' // JNLP container for Jenkins communication
-        image 'jenkins/inbound-agent:latest' // JNLP image for Jenkins agent
-        args ''
-      }
-      containerTemplate {
-        name 'podman' // Podman container for Docker/Podman commands
-        image 'chandu3377/maven-chandu-docker-agent:v1' // Podman image (make sure Podman is installed)
-        args '' // Remove --user root for simplicity
-        envVars [
-          // Add any necessary environment variables for Podman (if required)
-          [name: 'PODMAN_IMAGE', value: 'chandu3377/maven-chandu-docker-agent']
-        ]
-      }
+    docker {
+      image 'chandu3377/maven-chandu-docker-agent:v1'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
     }
   }
   stages {
     stage('Checkout') {
       steps {
-        echo 'Checkout stage'
         sh 'echo passed'
+        //git branch: 'main', url: 'https://github.com/chandu3377/ci-cd-ultimate.git'
       }
     }
-
     stage('Build and Test') {
       steps {
-        echo 'Build and Test stage'
         sh 'ls -ltr'
+        // build the project and create a JAR file
         sh 'cd java-maven-argocd-kube/spring-boot-app && mvn clean package'
       }
     }
-
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "https://sonarqube.apps.racs-prod.racsmaurice.com/"
+        SONAR_URL = "http://10.11.12.53:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -45,46 +29,40 @@ pipeline {
         }
       }
     }
-
-    stage('Build and Push Image using Podman') {
+    stage('Build and Push Docker Image') {
       environment {
-        PODMAN_IMAGE = "chandu3377/maven-chandu-docker-agent:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "chandu3377/maven-chandu-docker-agent:${BUILD_NUMBER}"
+        // DOCKERFILE_LOCATION = "java-maven-argocd-kube/spring-boot-app/Dockerfile"
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
-        container('podman') { // Explicitly use the 'podman' container here
-          script {
-            // Use Podman to build the image
-            sh 'cd java-maven-argocd-kube/spring-boot-app && podman build -t ${PODMAN_IMAGE} .'
-
-            // Push the image to Docker registry using Podman (if required)
-            withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-              sh "podman login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io"
-              sh "podman push ${PODMAN_IMAGE}"
+        script {
+            sh 'cd java-maven-argocd-kube/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+            def dockerImage = docker.image("${DOCKER_IMAGE}")
+            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+                dockerImage.push()
             }
-          }
         }
       }
     }
-
     stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "ci-cd-ultimate"
-        GIT_USER_NAME = "chandu3377"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "chanduprakash3377@gmail.com"
-            git config user.name "chandu"
-            BUILD_NUMBER=${BUILD_NUMBER}
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
-            git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
+        environment {
+            GIT_REPO_NAME = "ci-cd-ultimate"
+            GIT_USER_NAME = "chandu3377"
         }
-      }
+        steps {
+            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                sh '''
+                    git config user.email "chanduprakash3377@gmail.com"
+                    git config user.name "chandu"
+                    BUILD_NUMBER=${BUILD_NUMBER}
+                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git add java-maven-argocd-kube/spring-boot-app-manifests/deployment.yml
+                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                '''
+            }
+        }
     }
   }
 }
